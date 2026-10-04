@@ -1,0 +1,14 @@
+{% extends "base_siswa.html" %}
+{% block isi %}
+
+<div class="grid-materi">
+    {% for m in daftar_materi %}
+    <div class="kartu-materi">
+        <div class="kartu-materi-judul">{{ m.judul }}</div>
+        <p class="kartu-materi-isi">{{ m.ringkasan }}</p>
+        <a href="#" class="btn-gelap">Lihat Materi</a>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

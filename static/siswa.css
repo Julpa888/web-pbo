@@ -1,0 +1,260 @@
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    color: #222;
+}
+
+.layout {
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ---- Sidebar ---- */
+.sidebar {
+    width: 220px;
+    background: #10163a;
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar .logo {
+    background: #f0b429;
+    color: #10163a;
+    font-weight: bold;
+    font-size: 20px;
+    padding: 18px 20px;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    margin-top: 10px;
+}
+
+.sidebar nav a {
+    color: white;
+    text-decoration: none;
+    padding: 14px 20px;
+    font-size: 14px;
+}
+
+.sidebar nav a:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sidebar nav a.active {
+    background: #1d3fa0;
+    font-weight: bold;
+}
+
+/* ---- Main area ---- */
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.topbar {
+    background: #10163a;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    font-size: 13px;
+}
+
+.breadcrumb {
+    color: #c9cde0;
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.btn-keluar {
+    background: #d12b2b;
+    color: white;
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.content {
+    padding: 24px;
+}
+
+.content-title {
+    background: #1d3fa0;
+    color: white;
+    padding: 14px 18px;
+    border-radius: 4px;
+    margin: 0 0 20px;
+    font-size: 18px;
+}
+
+.subjudul {
+    color: #555;
+    margin-top: -8px;
+}
+
+/* ---- Tabel ---- */
+.tabel-data {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+}
+
+.tabel-data th, .tabel-data td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 14px;
+}
+
+.tabel-data th {
+    background: #d12b2b;
+    color: white;
+}
+
+/* ---- Materi ---- */
+.grid-materi {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.kartu-materi {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.kartu-materi-judul {
+    background: #1d3fa0;
+    color: white;
+    padding: 10px 14px;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.kartu-materi-isi {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: #555;
+    min-height: 40px;
+}
+
+.btn-gelap {
+    display: block;
+    text-align: center;
+    background: #10163a;
+    color: white;
+    text-decoration: none;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* ---- Tugas ---- */
+.layout-tugas {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 20px;
+}
+
+.kartu-tugas {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+
+.kartu-tugas-judul {
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.kartu-tugas-tanggal {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 8px;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: white;
+}
+
+.status-belum { background: #d12b2b; }
+.status-sudah { background: #1d3fa0; }
+
+.panel-kumpul {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 18px;
+}
+
+.panel-kumpul input[type="file"] {
+    display: block;
+    margin: 10px 0 14px;
+}
+
+.btn-merah {
+    background: #d12b2b;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 4px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* ---- Monitoring ---- */
+.grid-statistik {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.kartu-statistik {
+    border-radius: 6px;
+    padding: 18px;
+    text-align: center;
+    color: white;
+}
+
+.kartu-statistik.biru  { background: #1d3fa0; }
+.kartu-statistik.kuning{ background: #f0b429; color: #10163a; }
+.kartu-statistik.merah { background: #d12b2b; }
+
+.statistik-angka { font-size: 26px; font-weight: bold; }
+.statistik-label { font-size: 13px; margin-top: 4px; }
+
+.grid-dua-tabel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 800px) {
+    .layout { flex-direction: column; }
+    .sidebar { width: 100%; }
+    .grid-materi { grid-template-columns: 1fr; }
+    .layout-tugas, .grid-dua-tabel, .grid-statistik { grid-template-columns: 1fr; }
+}

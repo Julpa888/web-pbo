@@ -1,0 +1,42 @@
+{% extends "base_siswa.html" %}
+{% block isi %}
+
+<p class="subjudul">Anak: {{ nama_siswa }} | Kelas {{ kelas }}</p>
+
+<div class="grid-statistik">
+    <div class="kartu-statistik biru">
+        <div class="statistik-angka">{{ statistik.kehadiran }}%</div>
+        <div class="statistik-label">Kehadiran</div>
+    </div>
+    <div class="kartu-statistik kuning">
+        <div class="statistik-angka">{{ statistik.rata_nilai }}</div>
+        <div class="statistik-label">Rata-rata Nilai</div>
+    </div>
+    <div class="kartu-statistik merah">
+        <div class="statistik-angka">{{ statistik.tugas_selesai }}</div>
+        <div class="statistik-label">Tugas Selesai</div>
+    </div>
+</div>
+
+<div class="grid-dua-tabel">
+    <div>
+        <h3>Presensi Terakhir</h3>
+        <table class="tabel-data">
+            <tr><th>Tanggal</th><th>Materi</th><th>Status</th></tr>
+            {% for p in daftar_presensi %}
+            <tr><td>{{ p.tanggal }}</td><td>{{ p.materi }}</td><td>{{ p.status }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+    <div>
+        <h3>Nilai</h3>
+        <table class="tabel-data">
+            <tr><th>Materi</th><th>Tugas</th><th>Nilai</th></tr>
+            {% for n in daftar_nilai %}
+            <tr><td>{{ n.materi }}</td><td>{{ n.tugas }}</td><td>{{ n.nilai }}</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+
+{% endblock %}

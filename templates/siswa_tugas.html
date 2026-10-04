@@ -1,0 +1,31 @@
+{% extends "base_siswa.html" %}
+{% block isi %}
+
+<div class="layout-tugas">
+
+    <div class="daftar-tugas">
+        {% for t in daftar_tugas %}
+        <div class="kartu-tugas">
+            <div class="kartu-tugas-judul">{{ t.judul }}</div>
+            <div class="kartu-tugas-tanggal">Tenggat: {{ t.deadline }}</div>
+            <span class="status-badge status-{{ t.status_kelas }}">{{ t.status }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="panel-kumpul">
+        <h3>Detail Tugas</h3>
+        <p>{{ tugas_terpilih.deskripsi if tugas_terpilih else "Pilih salah satu tugas di sebelah kiri." }}</p>
+
+        {% if tugas_terpilih %}
+        <form method="POST" action="{{ url_for('siswa_kumpul_tugas', tugas_id=tugas_terpilih.id) }}" enctype="multipart/form-data">
+            <label for="dokumen">Dokumen Jawaban</label>
+            <input type="file" id="dokumen" name="dokumen" required>
+            <button type="submit" class="btn-merah">Kumpulkan Tugas</button>
+        </form>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

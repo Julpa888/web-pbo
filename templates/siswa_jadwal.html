@@ -1,0 +1,23 @@
+{% extends "base_siswa.html" %}
+{% block isi %}
+
+<table class="tabel-data">
+    <tr>
+        <th>Hari</th>
+        <th>Jam</th>
+        <th>Materi</th>
+        <th>Pengajar</th>
+        <th>Ruang</th>
+    </tr>
+    {% for j in daftar_jadwal %}
+    <tr>
+        <td>{{ j.hari }}</td>
+        <td>{{ j.jam }}</td>
+        <td>{{ j.materi }}</td>
+        <td>{{ j.pengajar }}</td>
+        <td>{{ j.ruang }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
