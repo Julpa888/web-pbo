@@ -59,7 +59,7 @@ def tambah_user(nama, username, password, role, kelas_id=None, foto=None, no_wha
     conn = koneksi()
     cursor = conn.execute(
         """INSERT INTO users (nama, username, password, role, kelas_id, foto, no_whatsapp, biodata)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
         (nama, username, password, role, kelas_id, foto, no_whatsapp, biodata),
     )
     conn.commit()
@@ -99,19 +99,205 @@ def hapus_user(user_id):
 # ======================================================
 # ANGGOTA 1 — query untuk kelas, jadwal
 # ======================================================
+_SQL_KELAS = """
+    SELECT k.id, k.nama, k.pengajar_id, u.nama AS pengajar_nama,
+            (SELECT COUNT(*) FROM kelas_siswa ks WHERE ks.kelas_id = k.id) AS jumlah_siswa
+    FROM kelas k
+    JOIN users u ON u.id = k.pengajar_id
+"""
+
+_SQL_JADWAL = """
+    SELECT j.id, j.hari, j.jam, j.kelas_id, j.pengajar_id,
+            k.nama AS kelas_nama, u.nama AS pengajar_nama
+    FROM jadwal j
+    JOIN kelas k ON k.id = j.kelas_id
+    JOIN users u ON u.id = j.pengajar_id
+"""
+
+# Urut Senin -> Minggu, lalu berdasarkan jam
+_URUT_JADWAL = """
+    ORDER BY CASE j.hari
+        WHEN 'Senin' THEN 1 WHEN 'Selasa' THEN 2 WHEN 'Rabu' THEN 3
+        WHEN 'Kamis' THEN 4 WHEN 'Jumat' THEN 5 WHEN 'Sabtu' THEN 6
+        ELSE 7 END, j.jam
+"""
+
+def _ambil_semua(sql, params=()):
+    conn = koneksi()
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+    return rows
+
+
+def _ambil_satu(sql, params=()):
+    conn = koneksi()
+    row = conn.execute(sql, params).fetchone()
+    conn.close()
+    return row
+
+# ---------- KELAS ----------
+def ambil_semua_kelas():
+    """Semua kelas + nama pengajar + jumlah siswa."""
+    return _ambil_semua(_SQL_KELAS + " ORDER BY k.nama")
+
 def ambil_kelas_by_id(kelas_id):
-    """TODO (Anggota 1)"""
-    pass
+    return _ambil_satu(_SQL_KELAS + " WHERE k.id = ?", (kelas_id,))
+
+def ambil_kelas_by_nama(nama):
+    """Cari kelas dengan nama sama (tidak peka huruf besar/kecil)."""
+    return _ambil_satu("SELECT * FROM kelas WHERE LOWER(nama) = LOWER(?)", (nama,))
+
+
+def tambah_kelas(nama, pengajar_id):
+    conn = koneksi()
+    cursor = conn.execute(
+        "INSERT INTO kelas (nama, pengajar_id) VALUES (?, ?)", (nama, pengajar_id)
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+    return new_id
+
+
+def edit_kelas(kelas_id, nama, pengajar_id):
+    conn = koneksi()
+    conn.execute(
+        "UPDATE kelas SET nama = ?, pengajar_id = ? WHERE id = ?",
+        (nama, pengajar_id, kelas_id),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+
+def hitung_data_terkait_kelas(kelas_id):
+    """Hitung data Anggota 2/4 yang masih menempel di kelas ini.
+    Dipakai untuk mencegah kelas dihapus kalau masih punya materi/tugas/presensi."""
+    conn = koneksi()
+    hasil = {}
+    for tabel in ("materi", "tugas", "presensi"):
+        hasil[tabel] = conn.execute(
+            f"SELECT COUNT(*) FROM {tabel} WHERE kelas_id = ?", (kelas_id,)
+        ).fetchone()[0]
+    conn.close()
+    return hasil
+
+
+def hapus_kelas(kelas_id):
+    """Hapus kelas beserta jadwal dan keanggotaan siswanya (satu transaksi)."""
+    conn = koneksi()
+    conn.execute("DELETE FROM jadwal WHERE kelas_id = ?", (kelas_id,))
+    conn.execute("DELETE FROM kelas_siswa WHERE kelas_id = ?", (kelas_id,))
+    conn.execute("UPDATE users SET kelas_id = NULL WHERE kelas_id = ?", (kelas_id,))
+    conn.execute("DELETE FROM kelas WHERE id = ?", (kelas_id,))
+    conn.commit()
+    conn.close()
+    return True
+
+
+# ---------- SISWA DI KELAS ----------
+def ambil_siswa_by_kelas(kelas_id):
+    return _ambil_semua(
+        """SELECT u.* FROM users u
+            JOIN kelas_siswa ks ON ks.siswa_id = u.id
+            WHERE ks.kelas_id = ? ORDER BY u.nama""",
+        (kelas_id,),
+    )
+
+
+def ambil_siswa_tanpa_kelas():
+    return _ambil_semua(
+        """SELECT * FROM users
+            WHERE role = 'siswa' AND id NOT IN (SELECT siswa_id FROM kelas_siswa)
+            ORDER BY nama"""
+    )
+
+
+
+def ambil_kelas_siswa(siswa_id):
+    """Kelas tempat siswa ini terdaftar (None kalau belum punya kelas)."""
+    return _ambil_satu(
+        """SELECT k.* FROM kelas k
+            JOIN kelas_siswa ks ON ks.kelas_id = k.id
+            WHERE ks.siswa_id = ?""",
+        (siswa_id,),
+    )
+
+def tambah_siswa_ke_kelas(kelas_id, siswa_id):
+    conn = koneksi()
+    conn.execute(
+        "INSERT INTO kelas_siswa (kelas_id, siswa_id) VALUES (?, ?)", (kelas_id, siswa_id)
+    )
+    conn.execute("UPDATE users SET kelas_id = ? WHERE id = ?", (kelas_id, siswa_id))
+    conn.commit()
+    conn.close()
+    return True
+
+def hapus_siswa_dari_kelas(kelas_id, siswa_id):
+    conn = koneksi()
+    conn.execute(
+        "DELETE FROM kelas_siswa WHERE kelas_id = ? AND siswa_id = ?", (kelas_id, siswa_id)
+    )
+    conn.execute(
+        "UPDATE users SET kelas_id = NULL WHERE id = ? AND kelas_id = ?", (siswa_id, kelas_id)
+    )
+    conn.commit()
+    conn.close()
+    return True
+ 
+ 
+# ---------- JADWAL ----------
+def ambil_semua_jadwal():
+    return _ambil_semua(_SQL_JADWAL + _URUT_JADWAL)
+ 
+ 
+def ambil_jadwal_by_id(jadwal_id):
+    return _ambil_satu(_SQL_JADWAL + " WHERE j.id = ?", (jadwal_id,))
 
 
 def ambil_jadwal_by_kelas(kelas_id):
-    """TODO (Anggota 1)"""
-    pass
+    """Dipakai Siswa.lihat_jadwal() (Anggota 1 -> tampil di halaman siswa)."""
+    return _ambil_semua(_SQL_JADWAL + " WHERE j.kelas_id = ?" + _URUT_JADWAL, (kelas_id,))
 
 
 def ambil_jadwal_by_pengajar(pengajar_id):
-    """TODO (Anggota 1)"""
-    pass
+    """Dipakai halaman Jadwal Mengajar milik pengajar."""
+    return _ambil_semua(_SQL_JADWAL + " WHERE j.pengajar_id = ?" + _URUT_JADWAL, (pengajar_id,))
+
+
+def ambil_jadwal_by_hari(hari):
+    """Dipakai untuk cek bentrok jadwal."""
+    return _ambil_semua(_SQL_JADWAL + " WHERE j.hari = ?", (hari,))
+
+
+def tambah_jadwal(hari, jam, kelas_id, pengajar_id):
+    conn = koneksi()
+    cursor = conn.execute(
+        "INSERT INTO jadwal (hari, jam, kelas_id, pengajar_id) VALUES (?, ?, ?, ?)",
+        (hari, jam, kelas_id, pengajar_id),
+    )
+    conn.commit()
+    new_id = cursor.lastrowid
+    conn.close()
+    return new_id
+
+def edit_jadwal(jadwal_id, hari, jam, kelas_id, pengajar_id):
+    conn = koneksi()
+    conn.execute(
+        "UPDATE jadwal SET hari = ?, jam = ?, kelas_id = ?, pengajar_id = ? WHERE id = ?",
+        (hari, jam, kelas_id, pengajar_id, jadwal_id),
+    )
+    conn.commit()
+    conn.close()
+    return True
+
+def hapus_jadwal(jadwal_id):
+    conn = koneksi()
+    conn.execute("DELETE FROM jadwal WHERE id = ?", (jadwal_id,))
+    conn.commit()
+    conn.close()
+    return True
+
 
 
 # ======================================================
