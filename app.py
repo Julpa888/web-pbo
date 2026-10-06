@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, session
+from flask import Flask, render_template, request, redirect, session, flash
 
 import database
 from models.user import Admin, buat_objek_user
+from models.akademik import Jadwal, HARI_VALID
 
 app = Flask(__name__)
 app.secret_key = "ganti-sebelum-deploy-publik"  # TODO (Julpa): ganti dengan nilai acak sebelum deploy
@@ -28,11 +29,11 @@ DAFTAR_MATERI = [
 
 DAFTAR_TUGAS = [
     {"id": 1, "judul": "Recount Text", "deadline": "3 Okt 2026", "status": "Belum", "status_kelas": "belum",
-     "deskripsi": "Kerjakan soal nomor 1-10 pada modul di halaman 12, lalu unggah hasilnya dalam format PDF."},
+        "deskripsi": "Kerjakan soal nomor 1-10 pada modul di halaman 12, lalu unggah hasilnya dalam format PDF."},
     {"id": 2, "judul": "Descriptive Text", "deadline": "5 Okt 2026", "status": "Belum", "status_kelas": "belum",
-     "deskripsi": "Tulis deskripsi singkat tentang anggota keluargamu, minimal 100 kata."},
+        "deskripsi": "Tulis deskripsi singkat tentang anggota keluargamu, minimal 100 kata."},
     {"id": 3, "judul": "Greetings, Introductions, and Self Introduction", "deadline": "28 Sep 2026", "status": "Sudah", "status_kelas": "sudah",
-     "deskripsi": "Rekam video perkenalan diri selama 1 menit."},
+        "deskripsi": "Rekam video perkenalan diri selama 1 menit."},
 ]
 
 STATISTIK_MONITORING = {"kehadiran": 92, "rata_nilai": 85, "tugas_selesai": "8 / 10"}
@@ -197,55 +198,197 @@ def pengajar_presensi():
 # ADMIN — Kelola Akun sudah jalan (Julpa). Jadwal/Kelas/Monitoring
 # masih TODO Anggota 1 & 3.
 # ======================================================
-@app.route("/admin/akun")
-def admin_akun():
-    if not wajib_login("admin"):
-        return redirect("/")
-    daftar_akun = database.ambil_semua_user()
-    return render_template("admin_akun.html", daftar_akun=daftar_akun, nama_admin=session.get("nama"))
+# ======================================================
+# ANGGOTA 1 — Route Kelola Kelas & Kelola Jadwal
+def _coba(fungsi, pesan_sukses):
+    """Jalankan fungsi; tampilkan pesan lewat flash. Return True kalau berhasil."""
+    try:
+        fungsi()
+        flash(pesan_sukses, "sukses")
+        return True
+    except ValueError as e:
+        flash(str(e), "error")
+        return False
 
 
-@app.route("/admin/akun/tambah", methods=["POST"])
-def admin_akun_tambah():
-    if not wajib_login("admin"):
-        return redirect("/")
-    admin = Admin(session["user_id"], session["nama"], "", "")
-    admin.kelola_akun(
-        "tambah",
-        nama=request.form["nama"],
-        username=request.form["username"],
-        password=request.form["password"],
-        role=request.form["role"],
-    )
-    return redirect("/admin/akun")
+def _admin_saat_ini():
+    return Admin(session["user_id"], session["nama"], "", "")
 
 
-@app.route("/admin/akun/<int:user_id>/hapus", methods=["POST"])
-def admin_akun_hapus(user_id):
-    if not wajib_login("admin"):
-        return redirect("/")
-    admin = Admin(session["user_id"], session["nama"], "", "")
-    admin.kelola_akun("hapus", user_id=user_id)
-    return redirect("/admin/akun")
-
-
-@app.route("/admin/jadwal")
-def admin_jadwal():
-    """TODO (Anggota 1): kelola_jadwal() — buat/edit/hapus jadwal + pilih pengajar."""
-    pass
-
-
+# ---------------------- KELOLA KELAS ----------------------
 @app.route("/admin/kelas")
 def admin_kelas():
-    """TODO (Anggota 1): kelola_kelas() — buat/edit/hapus kelas + atur siswa."""
-    pass
+    if not wajib_login("admin"):
+        return redirect("/")
+    return render_template(
+        "admin_kelas.html",
+        nama_admin=session.get("nama"),
+        daftar_kelas=database.ambil_semua_kelas(),
+        daftar_pengajar=database.ambil_semua_user("pengajar"),
+    )
 
 
-@app.route("/admin/monitoring")
-def admin_monitoring():
-    """TODO (Anggota 3): monitoring_sistem() — rekap materi, tugas, presensi,
-    nilai, catatan dari semua kelas (read-only)."""
-    pass
+@app.route("/admin/kelas/tambah", methods=["POST"])
+def admin_kelas_tambah():
+    if not wajib_login("admin"):
+        return redirect("/")
+    _coba(
+        lambda: _admin_saat_ini().kelola_kelas(
+            "tambah",
+            nama_kelas=request.form.get("nama_kelas"),
+            pengajar_id=request.form.get("pengajar_id"),
+        ),
+        "Kelas berhasil ditambahkan.",
+    )
+    return redirect("/admin/kelas")
+
+
+@app.route("/admin/kelas/<int:kelas_id>")
+def admin_kelas_detail(kelas_id):
+    """Halaman satu kelas: edit nama/pengajar + atur siswa."""
+    if not wajib_login("admin"):
+        return redirect("/")
+    kelas = database.ambil_kelas_by_id(kelas_id)
+    if kelas is None:
+        flash("Kelas tidak ditemukan.", "error")
+        return redirect("/admin/kelas")
+    return render_template(
+        "admin_kelas_detail.html",
+        nama_admin=session.get("nama"),
+        kelas=kelas,
+        siswa_kelas=database.ambil_siswa_by_kelas(kelas_id),
+        siswa_bebas=database.ambil_siswa_tanpa_kelas(),
+        daftar_pengajar=database.ambil_semua_user("pengajar"),
+    )
+
+
+@app.route("/admin/kelas/<int:kelas_id>/edit", methods=["POST"])
+def admin_kelas_edit(kelas_id):
+    if not wajib_login("admin"):
+        return redirect("/")
+    _coba(
+        lambda: _admin_saat_ini().kelola_kelas(
+            "edit",
+            kelas_id=kelas_id,
+            nama_kelas=request.form.get("nama_kelas"),
+            pengajar_id=request.form.get("pengajar_id"),
+        ),
+        "Kelas berhasil diubah.",
+    )
+    return redirect(f"/admin/kelas/{kelas_id}")
+
+
+@app.route("/admin/kelas/<int:kelas_id>/hapus", methods=["POST"])
+def admin_kelas_hapus(kelas_id):
+    if not wajib_login("admin"):
+        return redirect("/")
+    berhasil = _coba(
+        lambda: _admin_saat_ini().kelola_kelas("hapus", kelas_id=kelas_id),
+        "Kelas berhasil dihapus.",
+    )
+    return redirect("/admin/kelas" if berhasil else f"/admin/kelas/{kelas_id}")
+
+
+@app.route("/admin/kelas/<int:kelas_id>/siswa/tambah", methods=["POST"])
+def admin_kelas_siswa_tambah(kelas_id):
+    if not wajib_login("admin"):
+        return redirect("/")
+    _coba(
+        lambda: _admin_saat_ini().kelola_kelas(
+            "tambah_siswa", kelas_id=kelas_id, siswa_id=request.form.get("siswa_id")
+        ),
+        "Siswa berhasil ditambahkan ke kelas.",
+    )
+    return redirect(f"/admin/kelas/{kelas_id}")
+
+
+@app.route("/admin/kelas/<int:kelas_id>/siswa/<int:siswa_id>/hapus", methods=["POST"])
+def admin_kelas_siswa_hapus(kelas_id, siswa_id):
+    if not wajib_login("admin"):
+        return redirect("/")
+    _coba(
+        lambda: _admin_saat_ini().kelola_kelas(
+            "hapus_siswa", kelas_id=kelas_id, siswa_id=siswa_id
+        ),
+        "Siswa dikeluarkan dari kelas.",
+    )
+    return redirect(f"/admin/kelas/{kelas_id}")
+
+
+# ---------------------- KELOLA JADWAL ----------------------
+@app.route("/admin/jadwal")
+def admin_jadwal():
+    """Daftar jadwal + form tambah. Kalau ada ?edit=<id>, form berubah jadi form edit."""
+    if not wajib_login("admin"):
+        return redirect("/")
+
+    jadwal_edit, jam_mulai, jam_selesai = None, "", ""
+    edit_id = request.args.get("edit", type=int)
+    if edit_id:
+        jadwal_edit = database.ambil_jadwal_by_id(edit_id)
+        if jadwal_edit is None:
+            flash("Jadwal tidak ditemukan.", "error")
+            return redirect("/admin/jadwal")
+        try:
+            jam_mulai, jam_selesai = Jadwal.pecah_jam(jadwal_edit["jam"])
+        except ValueError:
+            pass  # format jam lama tidak terbaca, biarkan kolom kosong
+
+    return render_template(
+        "admin_jadwal.html",
+        nama_admin=session.get("nama"),
+        daftar_jadwal=database.ambil_semua_jadwal(),
+        daftar_kelas=database.ambil_semua_kelas(),
+        daftar_pengajar=database.ambil_semua_user("pengajar"),
+        daftar_hari=HARI_VALID,
+        jadwal_edit=jadwal_edit,
+        jam_mulai=jam_mulai,
+        jam_selesai=jam_selesai,
+    )
+
+
+def _data_form_jadwal():
+    return dict(
+        hari=request.form.get("hari"),
+        jam_mulai=request.form.get("jam_mulai"),
+        jam_selesai=request.form.get("jam_selesai"),
+        kelas_id=request.form.get("kelas_id"),
+        pengajar_id=request.form.get("pengajar_id"),
+    )
+
+
+@app.route("/admin/jadwal/tambah", methods=["POST"])
+def admin_jadwal_tambah():
+    if not wajib_login("admin"):
+        return redirect("/")
+    _coba(
+        lambda: _admin_saat_ini().kelola_jadwal("tambah", **_data_form_jadwal()),
+        "Jadwal berhasil ditambahkan.",
+    )
+    return redirect("/admin/jadwal")
+
+
+@app.route("/admin/jadwal/<int:jadwal_id>/edit", methods=["POST"])
+def admin_jadwal_edit(jadwal_id):
+    if not wajib_login("admin"):
+        return redirect("/")
+    berhasil = _coba(
+        lambda: _admin_saat_ini().kelola_jadwal("edit", jadwal_id=jadwal_id, **_data_form_jadwal()),
+        "Jadwal berhasil diubah.",
+    )
+    # kalau gagal (misal bentrok), tetap di form edit supaya admin bisa koreksi
+    return redirect("/admin/jadwal" if berhasil else f"/admin/jadwal?edit={jadwal_id}")
+
+
+@app.route("/admin/jadwal/<int:jadwal_id>/hapus", methods=["POST"])
+def admin_jadwal_hapus(jadwal_id):
+    if not wajib_login("admin"):
+        return redirect("/")
+    _coba(
+        lambda: _admin_saat_ini().kelola_jadwal("hapus", jadwal_id=jadwal_id),
+        "Jadwal berhasil dihapus.",
+    )
+    return redirect("/admin/jadwal")
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ sudah memanggilnya persis seperti ini.
 
 from abc import ABC, abstractmethod
 import database
+from models.akademik import Kelas, Jadwal
 
 
 class User(ABC):
@@ -35,8 +36,10 @@ class Siswa(User):
         self.kelas_id = kelas_id
 
     def lihat_jadwal(self):
-        """TODO (Anggota 1): ambil jadwal berdasarkan self.kelas_id."""
-        pass
+        """Jadwal kelas siswa ini (kosong kalau belum punya kelas)."""
+        if self.kelas_id is None:
+            return []
+        return database.ambil_jadwal_by_kelas(self.kelas_id)
 
     def kumpul_tugas(self, tugas, jawaban):
         """TODO (Anggota 2): panggil Pengumpulan.submit_jawaban()."""
@@ -65,6 +68,10 @@ class Pengajar(User):
     def edit_profil(self, foto=None, whatsapp=None, biodata=None):
         """TODO (Julpa/Aya, bagian profil ringan): update atribut di atas."""
         pass
+
+    def lihat_jadwal_mengajar(self):
+        """Jadwal mengajar milik pengajar ini saja (dipakai route /pengajar/jadwal)."""
+        return database.ambil_jadwal_by_pengajar(self.id)
 
     def upload_materi(self, kelas, judul, kategori, file):
         """TODO (Anggota 2): buat objek Materi, simpan ke database."""
@@ -117,13 +124,88 @@ class Admin(User):
         else:
             raise ValueError(f"Aksi tidak dikenal: {aksi}")
 
+    # ==================================================
+    # ANGGOTA 1 — Kelola Kelas & Kelola Jadwal
+    # Semua kegagalan validasi dilempar sebagai ValueError (pesannya siap
+    # ditampilkan ke admin lewat flash di app.py).
+    # ==================================================
     def kelola_kelas(self, aksi, **data):
-        """TODO (Anggota 1): tambah/edit/hapus Kelas + atur siswa."""
-        pass
+        """Kelola kelas + siswa di dalamnya.
+
+        aksi:
+        - 'tambah'       -> data: nama_kelas, pengajar_id            (return id baru)
+        - 'edit'         -> data: kelas_id, nama_kelas, pengajar_id
+        - 'hapus'        -> data: kelas_id
+        - 'tambah_siswa' -> data: kelas_id, siswa_id
+        - 'hapus_siswa'  -> data: kelas_id, siswa_id
+        """
+        if aksi == "tambah":
+            nama, pengajar_id = Kelas.cek_input(data["nama_kelas"], data["pengajar_id"])
+            return database.tambah_kelas(nama, pengajar_id)
+
+        kelas = Kelas.muat(data["kelas_id"])  # semua aksi di bawah butuh kelasnya ada
+
+        if aksi == "edit":
+            nama, pengajar_id = Kelas.cek_input(
+                data["nama_kelas"], data["pengajar_id"], exclude_id=kelas.id
+            )
+            return database.edit_kelas(kelas.id, nama, pengajar_id)
+
+        elif aksi == "hapus":
+            terkait = database.hitung_data_terkait_kelas(kelas.id)
+            if any(terkait.values()):
+                raise ValueError(
+                    f"Kelas '{kelas.nama_kelas}' tidak bisa dihapus karena masih punya "
+                    f"{terkait['materi']} materi, {terkait['tugas']} tugas, dan "
+                    f"{terkait['presensi']} data presensi."
+                )
+            return database.hapus_kelas(kelas.id)
+
+        elif aksi == "tambah_siswa":
+            return kelas.tambah_siswa(data["siswa_id"])
+
+        elif aksi == "hapus_siswa":
+            return kelas.hapus_siswa(data["siswa_id"])
+
+        else:
+            raise ValueError(f"Aksi tidak dikenal: {aksi}")
 
     def kelola_jadwal(self, aksi, **data):
-        """TODO (Anggota 1): tambah/edit/hapus Jadwal."""
-        pass
+        """Kelola jadwal kelas (hari, jam, pengajar).
+
+        aksi:
+        - 'tambah' -> data: hari, jam_mulai, jam_selesai, kelas_id, pengajar_id
+        - 'edit'   -> data: jadwal_id + field yang sama seperti 'tambah'
+        - 'hapus'  -> data: jadwal_id
+        jam_mulai/jam_selesai berformat 'HH:MM' atau 'HH.MM'.
+        """
+        if aksi == "tambah":
+            kelas_id, pengajar_id, jam = Jadwal.cek_input(
+                data["hari"], data["jam_mulai"], data["jam_selesai"],
+                data["kelas_id"], data["pengajar_id"],
+            )
+            return database.tambah_jadwal(data["hari"], jam, kelas_id, pengajar_id)
+
+        # edit & hapus: pastikan jadwalnya ada
+        try:
+            jadwal_id = int(data["jadwal_id"])
+        except (TypeError, ValueError):
+            raise ValueError("Jadwal tidak valid.")
+        if database.ambil_jadwal_by_id(jadwal_id) is None:
+            raise ValueError("Jadwal tidak ditemukan.")
+
+        if aksi == "edit":
+            kelas_id, pengajar_id, jam = Jadwal.cek_input(
+                data["hari"], data["jam_mulai"], data["jam_selesai"],
+                data["kelas_id"], data["pengajar_id"], exclude_id=jadwal_id,
+            )
+            return database.edit_jadwal(jadwal_id, data["hari"], jam, kelas_id, pengajar_id)
+
+        elif aksi == "hapus":
+            return database.hapus_jadwal(jadwal_id)
+
+        else:
+            raise ValueError(f"Aksi tidak dikenal: {aksi}")
 
     def monitoring_sistem(self):
         """TODO (Anggota 3): rekap materi, tugas, presensi, nilai, catatan
@@ -142,10 +224,10 @@ def buat_objek_user(row):
     role = row["role"]
     if role == "siswa":
         return Siswa(row["id"], row["nama"], row["username"], row["password"],
-                     row["kelas_id"] if "kelas_id" in row.keys() else None)
+                        row["kelas_id"] if "kelas_id" in row.keys() else None)
     elif role == "pengajar":
         return Pengajar(row["id"], row["nama"], row["username"], row["password"],
-                         row["foto"], row["no_whatsapp"], row["biodata"])
+                            row["foto"], row["no_whatsapp"], row["biodata"])
     elif role == "admin":
         return Admin(row["id"], row["nama"], row["username"], row["password"])
     raise ValueError(f"Role tidak dikenal: {role}")
