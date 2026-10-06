@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Jadwal - Fluenglo{% endblock %}
+{% block bodyclass %}v{% endblock %}
+
+{#
+  jadwal_list  : kelas_id, hari, jam_mulai, jam_selesai, tanggal, materi, nama_pengajar, (opsional) minggu
+  kelas_list   : id, nama_kelas
+  pengajar_list: id, nama, username
+#}
+{% block content %}
+<!-- pilih kelas dulu (sama seperti halaman Kelas) -->
+<div id="daftar-kelas">
+{% for k in kelas_list %}
+  <div class="kelas" data-kelas="{{ k['id'] }}"><div class="bg"></div>
+    <div class="t"><h3>{{ k['nama_kelas'] }}</h3>
+      <div class="tc">{% for p in k['pengajar_list'] %}<span>{{ p['nama'] }}</span>{% endfor %}</div></div></div>
+{% else %}<p class="empty">Belum ada kelas. Buat kelas terlebih dahulu.</p>{% endfor %}
+</div>
+
+<!-- jadwal per kelas -->
+{% for k in kelas_list %}
+{% set rows = jadwal_list|selectattr('kelas_id', 'equalto', k['id'])|list %}
+<div class="sched" id="sc-{{ k['id'] }}" hidden>
+  <p style="margin-top:26px"><a href="#" class="back" style="color:#fff;font-weight:500">&larr; Semua kelas</a></p>
+  {% set groups = (rows|groupby('minggu')) if rows else [] %}
+  {% for g in groups %}
+  <div class="card-tbl" style="margin-top:26px;margin-bottom:0">
+    <h2 style="border-style:solid">Jadwal Mengajar Minggu Ke-{{ g[0] }}</h2>
+    <table class="sub-tbl" style="margin:0"><thead><tr><th>Kelas</th><th>Hari</th><th>Tanggal</th><th>Pengajar</th><th>Jam</th><th>Materi</th></tr></thead><tbody>
+    {% for j in g[1] %}
+      <tr><td>{{ k['nama_kelas']|replace('Kelas ', '') }}</td><td>{{ j['hari'] }}</td><td>{{ j['tanggal']|default('-') }}</td>
+      <td>{{ j['nama_pengajar']|default('-') }}</td><td>{{ j['jam_mulai'] }} - {{ j['jam_selesai'] }}</td><td>{{ j['materi']|default('-') }}</td></tr>
+    {% endfor %}</tbody></table>
+  </div>
+  {% else %}<p class="empty">Belum ada jadwal untuk kelas ini.</p>{% endfor %}
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block fab %}
+<button type="button" class="fab" data-open="m-jadwal" aria-label="Buat jadwal"><img src="{{ url_for('static', filename='images/yellow_plus_icon.png') }}" alt=""></button>
+{% endblock %}
+
+{% block modals %}
+<div id="m-jadwal" class="modal" hidden>
+  <div class="mh">Buat Jadwal<button type="button" class="x" data-close><img src="{{ url_for('static', filename='images/red_x_icon.png') }}" alt="Tutup"></button></div>
+  <form class="mb" method="post" action="{{ url_for('kelola_jadwal') }}" data-validate novalidate>
+    <div class="row2">
+      <div>
+        <div class="field"><label>Kelas</label>
+          <div class="select" data-ph="Nama kelas"><input type="hidden" name="kelas_id" data-rule="required" data-msg="Pilih kelas">
+            <div class="sel-box"><span class="sel-text"></span><i class="arrow"></i></div>
+            <div class="sel-opts">{% for k in kelas_list %}<div data-v="{{ k['id'] }}">{{ k['nama_kelas'] }}</div>{% else %}<div data-v="">Belum ada kelas</div>{% endfor %}</div></div></div>
+        <div class="field"><label>Hari</label>
+          <div class="select" data-ph="Hari"><input type="hidden" name="hari" data-rule="required" data-msg="Pilih hari">
+            <div class="sel-box"><span class="sel-text"></span><i class="arrow"></i></div>
+            <div class="sel-opts">{% for h in ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] %}<div data-v="{{ h }}">{{ h }}</div>{% endfor %}</div></div></div>
+        <div class="field"><label>Tanggal</label><input type="date" name="tanggal" data-rule="required" data-msg="Tanggal wajib diisi"></div>
+        <div class="field"><label>Pengajar</label>
+          <div class="select" data-ph="Nama pengajar"><input type="hidden" name="pengajar_id" data-rule="required" data-msg="Pilih pengajar">
+            <div class="sel-box"><span class="sel-text"></span><i class="arrow"></i></div>
+            <div class="sel-opts">{% for p in pengajar_list %}<div data-v="{{ p['id'] }}">{{ p['nama'] }}</div>{% else %}<div data-v="">Belum ada akun pengajar</div>{% endfor %}</div></div></div>
+      </div>
+      <div>
+        <div class="field"><label>Jam</label>
+          <div style="display:flex;gap:10px;align-items:center">
+            <input type="time" name="jam_mulai" id="j-mulai" data-rule="required" data-msg="Jam mulai wajib diisi" style="width:100%;height:46px;border:2px solid #555;padding:0 10px;font:inherit">
+            <span>-</span>
+            <input type="time" name="jam_selesai" data-rule="required" data-after="#j-mulai" data-msg="Jam selesai wajib diisi" style="width:100%;height:46px;border:2px solid #555;padding:0 10px;font:inherit">
+          </div></div>
+        <div class="field"><label>Materi</label><input type="text" name="materi" placeholder="Nama materi yang diajar" data-rule="required" data-msg="Materi wajib diisi" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="actions"><button class="btn" type="submit">Tambahkan</button></div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const list = document.getElementById('daftar-kelas');
+document.querySelectorAll('[data-kelas]').forEach(k => k.addEventListener('click', () => {
+  list.hidden = true; document.getElementById('sc-' + k.dataset.kelas).hidden = false;
+}));
+document.querySelectorAll('.back').forEach(b => b.addEventListener('click', e => {
+  e.preventDefault(); document.querySelectorAll('.sched').forEach(s => s.hidden = true); list.hidden = false;
+}));
+</script>
+{% endblock %}

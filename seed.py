@@ -1,37 +1,28 @@
-"""
-seed.py
-Penanggung jawab: JULPA (Koordinator/Integrator)
-
-Jalankan SEKALI untuk membuat akun admin pertama. Akun admin berikutnya
-(kalau perlu lebih dari satu) dibuat oleh admin ini lewat fitur
-"Kelola Akun" di web, bukan lewat file ini lagi.
-
-Cara pakai: python seed.py
-"""
-
+import sqlite3
 import database
 
-# TODO: ganti username/password default ini sebelum deploy publik
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin123"
-ADMIN_NAMA = "Admin Fluenglo"
+def init_db():
+    conn = sqlite3.connect('fluenglo.db')
+    with open('schema.sql', 'r') as f:
+        conn.executescript(f.read())
+    conn.commit()
+    database.migrasi()  # tambah kolom baru jika fluenglo.db masih versi lama
 
+    cursor = conn.cursor()
+    # Bersihkan data lama jika ada
+    cursor.execute('DELETE FROM users')
+    cursor.execute('DELETE FROM kelas')
+    cursor.execute('DELETE FROM jadwal')
 
-def buat_admin_pertama():
-    sudah_ada = database.ambil_user_by_username(ADMIN_USERNAME)
-    if sudah_ada:
-        print(f"Akun '{ADMIN_USERNAME}' sudah ada, tidak dibuat ulang.")
-        return
-    database.tambah_user(
-        nama=ADMIN_NAMA,
-        username=ADMIN_USERNAME,
-        password=ADMIN_PASSWORD,
-        role="admin",
-    )
-    print(f"Akun admin '{ADMIN_USERNAME}' berhasil dibuat.")
+    # Seed Hanya Akun Admin Utama
+    cursor.execute('''
+        INSERT INTO users (nama, username, password, role, foto, no_whatsapp, biodata)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', ('Siti Julpa Admin', 'admin', 'admin123', 'admin', 'default_avatar.png', None, None))
 
+    conn.commit()
+    conn.close()
+    print("Database fluenglo.db berhasil dibuat hanya dengan akun Admin!")
 
-if __name__ == "__main__":
-    database.buat_tabel()
-    buat_admin_pertama()
-    print("Selesai. Login dengan username:", ADMIN_USERNAME)
+if __name__ == '__main__':
+    init_db()

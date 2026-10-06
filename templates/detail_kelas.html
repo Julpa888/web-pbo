@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+{% block title %}{{ kelas['nama_kelas'] }} - Fluenglo{% endblock %}
+{% block bodyclass %}v{% endblock %}
+
+{#
+  Data opsional (kirim dari app.py bila sudah ada):
+  materi_list   : judul, pengirim, tanggal, diedit, catatan, file, tipe
+  tugas_list    : id, judul, pengirim, tanggal, diedit, poin, tenggat, petunjuk,
+                  pengumpulan = [siswa, berkas, nilai, dikembalikan]
+  presensi_list : label (mis. "Senin, 5 Oktober 2026"), tanggal
+  siswa_list    : daftar siswa kelas (sudah ada)
+#}
+{% set materi_list = materi_list|default([]) %}
+{% set tugas_list = tugas_list|default([]) %}
+{% set presensi_list = presensi_list|default([]) %}
+{% set is_pengajar = session.get('role') == 'pengajar' %}
+
+{% macro ico() %}<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/></svg>{% endmacro %}
+
+{% block content %}
+<div class="kelas mini">
+  <div class="bg"></div>
+  <div class="t"><h3>{{ kelas['nama_kelas'] }}</h3>
+    <div class="tc">{% for p in pengajar_list|default([]) %}<span data-pj='{{ {"nama": p["nama"], "wa": p["no_whatsapp"] or "", "foto": p["foto"] or ""}|tojson }}'>{{ p['nama'] }}</span>{% endfor %}</div></div>
+</div>
+
+<div class="tabs" data-g="main">
+  <a data-p="p-materi" class="on">Materi</a><a data-p="p-tugas">Tugas</a><a data-p="p-presensi">Presensi</a>
+</div>
+
+<!-- MATERI -->
+<section id="p-materi" data-pg="main">
+{% for m in materi_list %}
+  <div class="item" data-toggle="mt-{{ loop.index }}">{{ ico() }}
+    <div>{{ m['pengirim'] }} memposting materi baru: {{ m['judul'] }}<small>{{ m['tanggal'] }} (Diedit {{ m['diedit'] }})</small></div></div>
+  <div class="pnl" id="mt-{{ loop.index }}" hidden>
+    <h4>{{ m['catatan'] or 'Catatan Dari Pengajar' }}</h4>
+    <div class="file"><div><a href="{{ url_for('static', filename='uploads/' ~ m['file']) }}" download>{{ m['file'] }}</a><span>{{ m['tipe'] or 'PDF' }}</span></div>
+      <div class="pdf"><b>PDF</b></div></div>
+  </div>
+{% else %}<p class="empty">Belum ada materi.</p>{% endfor %}
+</section>
+
+<!-- TUGAS -->
+<section id="p-tugas" data-pg="main" hidden>
+{% for t in tugas_list %}
+  <div class="item" data-toggle="tg-{{ loop.index }}">{{ ico() }}
+    <div>{{ t['pengirim'] }} memposting tugas baru: {{ t['judul'] }}<small>{{ t['tanggal'] }} (Diedit {{ t['diedit'] }})</small></div></div>
+  <div id="tg-{{ loop.index }}" hidden>
+    <div class="tabs" data-g="tg{{ loop.index }}"><a data-p="pt-{{ loop.index }}" class="on">Petunjuk</a><a data-p="ts-{{ loop.index }}">Tugas Siswa</a></div>
+    <div class="pnl" id="pt-{{ loop.index }}" data-pg="tg{{ loop.index }}"><b>{{ t['judul'] }}</b>
+      <small style="display:block;color:#666">{{ t['poin'] }} poin | Tenggat: {{ t['tenggat'] }}</small><p style="margin-top:12px">{{ t['petunjuk'] }}</p></div>
+    <div class="sub-tbl" id="ts-{{ loop.index }}" data-pg="tg{{ loop.index }}" hidden>
+      <h2>Pengumpulan: {{ t['judul'] }}</h2>
+      <table><thead><tr><th>Siswa</th><th>Berkas</th><th>Nilai</th><th>Aksi</th></tr></thead><tbody>
+      {% for s in t['pengumpulan'] %}
+        <tr><td>{{ s['siswa'] }}</td><td>{{ s['berkas'] or '-' }}</td><td>{{ s['nilai'] if s['nilai'] is not none else '_' }}/100</td>
+        <td style="padding:0">
+          {% if s['dikembalikan'] %}<button class="act blue" type="button">Kembalikan</button>
+          {% elif s['nilai'] is not none %}<button class="act red" type="button">Kembalikan</button>
+          {% else %}<button class="act grey" type="button" disabled>Kembalikan</button>{% endif %}
+        </td></tr>
+      {% endfor %}</tbody></table>
+    </div>
+  </div>
+{% else %}<p class="empty">Belum ada tugas.</p>{% endfor %}
+</section>
+
+<!-- PRESENSI -->
+<section id="p-presensi" data-pg="main" hidden>
+{% for p in presensi_list %}
+  <div class="item" data-toggle="pr-{{ loop.index }}"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="#c9a227" stroke-width="1.6"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+    <div>Presensi {{ p['label'] }}<small>Daftar kehadiran Siswa</small></div></div>
+  <div id="pr-{{ loop.index }}" hidden>
+    <div class="meta"><div class="field"><label>Kelas</label><input type="text" value="{{ kelas['nama_kelas'] }}" readonly></div>
+      <div class="field"><label>Tanggal</label><input type="text" value="{{ p['label'] }}" readonly></div></div>
+    <form method="post" action="#"> {# TODO: route simpan presensi #}
+    {% if is_pengajar %}<div class="tools"><button type="button" class="btn" id="hadir-semua">Hadirkan semua</button></div>{% endif %}
+    <table style="margin-top:12px"><thead><tr><th>Siswa</th><th>Hadir</th><th>Izin</th><th>Sakit</th><th>Alpha</th></tr></thead><tbody>
+    {% for s in siswa_list %}<tr><td>{{ s['nama'] }}</td>
+      {% for st in ['hadir', 'izin', 'sakit', 'alpha'] %}<td><input class="ck" type="radio" name="st_{{ s['id'] }}" value="{{ st }}" {{ '' if is_pengajar else 'disabled' }}></td>{% endfor %}</tr>
+    {% else %}<tr><td colspan="5">Belum ada siswa di kelas ini.</td></tr>{% endfor %}</tbody></table>
+    {% if is_pengajar %}<div class="actions"><button class="btn" type="submit">Simpan</button></div>{% endif %}
+    </form>
+  </div>
+{% else %}<p class="empty">Belum ada presensi.</p>{% endfor %}
+</section>
+{% endblock %}

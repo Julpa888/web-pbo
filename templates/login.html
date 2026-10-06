@@ -1,46 +1,27 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Fluenglo</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Masuk - Fluenglo</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body>
-
-    <div class="login-card">
-
-        <div class="mondrian">
-            <div class="block red-a"></div>
-            <div class="block title">Fluenglo</div>
-            <div class="block yellow-a"></div>
-            <div class="block blue-a"></div>
-            <div class="block black-a"></div>
-            <div class="block white-a"></div>
-            <div class="block white-b"></div>
-            <div class="block yellow-b"></div>
-            <div class="block red-b"></div>
-        </div>
-
-        <div class="form-panel">
-            <h1>Masuk ke Fluenglo</h1>
-
-            <form method="POST">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Masukkan username" required>
-
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Masukkan password" required>
-
-                <button type="submit">Login</button>
-            </form>
-
-            <p class="note">
-                Setelah login, menu dan fitur menyesuaikan peran: Siswa, Pengajar, atau Admin.
-            </p>
-        </div>
-
-    </div>
-
+<body style="background:#fff;font-family:Arial,Helvetica,sans-serif">
+<div class="login">
+  <div class="l"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="Fluenglo"></div>
+  <form class="r" method="post" action="{{ url_for('login') }}">
+    <h1>Masuk</h1>
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in msgs %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    <label for="username">Username</label>
+    <input id="username" name="username" type="text" placeholder="Masukkan username" required autofocus>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" placeholder="Masukkan password" required>
+    <button type="submit">Login</button>
+  </form>
+</div>
+<script src="{{ url_for('static', filename='js/password_toggle.js') }}"></script>
 </body>
 </html>

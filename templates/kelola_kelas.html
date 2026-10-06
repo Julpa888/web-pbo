@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Kelas - Fluenglo{% endblock %}
+{% block bodyclass %}v{% endblock %}
+
+{% block content %}
+{% for k in kelas_list %}
+  {# k['pengajar_list'] (opsional) = list pengajar: id, nama, no_whatsapp, foto. Fallback: k['nama_pengajar'] #}
+  <div class="kelas" data-url="{{ url_for('detail_kelas', kelas_id=k['id']) }}" onclick="location.href=this.dataset.url">
+    <div class="bg"></div>
+    <button type="button" class="del" data-confirm="Yakin ingin menghapus {{ k['nama_kelas'] }}? Kelas hanya bisa dihapus jika tidak ada siswa di dalamnya." data-url="{{ url_for('hapus_kelas', kelas_id=k['id']) }}" onclick="event.stopPropagation()">Hapus</button>
+    <div class="t">
+      <h3>{{ k['nama_kelas'] }}</h3>
+      <div class="tc">
+        {% if k['pengajar_list'] is defined %}
+          {% for p in k['pengajar_list'] %}
+            <span data-pj='{{ {"nama": p["nama"], "wa": p["no_whatsapp"] or "", "foto": p["foto"] or ""}|tojson }}'>{{ p['nama'] }}</span>
+          {% endfor %}
+        {% elif k['nama_pengajar'] is defined %}
+          <span>{{ k['nama_pengajar'] }}</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+{% else %}
+  <p class="empty">Belum ada kelas. Tekan tombol + untuk membuat kelas.</p>
+{% endfor %}
+{% endblock %}
+
+{% block fab %}
+<button type="button" class="fab" data-open="m-kelas" aria-label="Tambah kelas"><img src="{{ url_for('static', filename='images/yellow_plus_icon.png') }}" alt=""></button>
+{% endblock %}
+
+{% block modals %}
+<div id="m-kelas" class="modal" hidden style="width:min(800px,calc(100% - 40px))">
+  <div class="mh">Tambah Kelas<button type="button" class="x" data-close><img src="{{ url_for('static', filename='images/red_x_icon.png') }}" alt="Tutup"></button></div>
+  <form class="mb" method="post" action="{{ url_for('kelola_kelas') }}" data-validate novalidate>
+    <div class="field"><label>Nama Kelas</label><input type="text" name="nama_kelas" placeholder="Nama kelas" data-rule="required" data-msg="Nama kelas wajib diisi" autocomplete="off"></div>
+    <div class="field"><label>Pengajar <span style="font-weight:400">(maksimal 2)</span></label>
+      <div class="select multi" data-ph="Username" data-max="2">
+        <input type="hidden" name="pengajar_id" data-rule="required" data-msg="Pilih minimal 1 pengajar">
+        <input type="hidden" name="pengajar_id2">
+        <div class="sel-box"><span class="sel-text"></span><i class="arrow"></i></div>
+        <div class="sel-opts">
+          {% for p in pengajar_list %}<div data-v="{{ p['id'] }}" data-t="{{ p['username'] }}">{{ p['username'] }} - {{ p['nama'] }}</div>
+          {% else %}<div data-v="">Belum ada akun pengajar</div>{% endfor %}
+        </div>
+      </div>
+      <div class="chips"></div>
+    </div>
+    <div class="actions"><button class="btn" type="submit">Tambahkan</button></div>
+  </form>
+</div>
+
+<div id="m-pj" class="modal sm pop-p" hidden style="width:300px">
+  <button type="button" class="x" data-close><img src="{{ url_for('static', filename='images/red_x_icon.png') }}" alt="Tutup"></button>
+  <img id="pj-foto" src="" alt="Foto pengajar">
+  <div><b>Nama:</b> <span id="pj-nama"></span></div>
+  <div><b>Nomor WA:</b> <a id="pj-wa" href="#" target="_blank" rel="noopener"></a></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('[data-pj]').forEach(s => s.addEventListener('click', e => {
+  e.stopPropagation(); const p = JSON.parse(s.dataset.pj);
+  const img = document.getElementById('pj-foto');
+  img.onerror = () => { img.onerror = null; img.src = PATH.av; };
+  img.src = p.foto ? PATH.up + p.foto : PATH.av;
+  document.getElementById('pj-nama').textContent = p.nama;
+  const wa = document.getElementById('pj-wa'); wa.textContent = p.wa || '-';
+  wa.href = p.wa ? 'https://wa.me/' + p.wa.replace(/\D/g, '').replace(/^0/, '62') : '#';
+  openModal('m-pj');
+}));
+</script>
+{% endblock %}

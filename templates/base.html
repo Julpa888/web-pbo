@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Fluenglo{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+{% set ep = request.endpoint %}
+<div class="wrap">
+  <nav class="nav">
+    <a class="brand" href="{{ url_for('dashboard') }}"><img src="{{ url_for('static', filename='images/logo.png') }}" alt="Fluenglo"></a>
+    <a href="{{ url_for('kelola_akun') }}" class="{{ 'active' if ep == 'kelola_akun' }}">Kelola Akun</a>
+    <a href="{{ url_for('kelola_kelas') }}" class="{{ 'active' if ep in ('kelola_kelas', 'detail_kelas') }}">Kelas</a>
+    <a href="{{ url_for('kelola_jadwal') }}" class="{{ 'active' if ep == 'kelola_jadwal' }}">Jadwal</a>
+    <span class="who">Pengguna: {{ (session.get('role') or '')|capitalize }}</span>
+  </nav>
+
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in msgs %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</div>
+
+{% block fab %}{% endblock %}
+<div id="overlay" class="overlay" hidden></div>
+
+<!-- konfirmasi hapus (dipakai akun & kelas) -->
+<div id="m-confirm" class="modal sm" hidden>
+  <div class="center">
+    <p id="cf-text">Yakin ingin menghapus?</p>
+    <div class="actions"><a id="cf-yes" class="btn" href="#">Ya</a><button type="button" class="btn no" data-close>Tidak</button></div>
+  </div>
+</div>
+
+<!-- popup profil guru (dipakai halaman kelas, detail kelas) -->
+<div id="m-pj" class="modal sm pop-p" hidden style="width:300px">
+  <button type="button" class="x" data-close><img src="{{ url_for('static', filename='images/red_x_icon.png') }}" alt="Tutup"></button>
+  <img id="pj-foto" src="" alt="Foto pengajar">
+  <div><b>Nama:</b> <span id="pj-nama"></span></div>
+  <div><b>Nomor WA:</b> <a id="pj-wa" href="#" target="_blank" rel="noopener"></a></div>
+</div>
+
+{% block modals %}{% endblock %}
+<script>window.PATH = {up: "{{ url_for('static', filename='uploads/') }}", av: "{{ url_for('static', filename='images/default_avatar.png') }}"};</script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/password_toggle.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
