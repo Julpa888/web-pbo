@@ -28,6 +28,13 @@ def simpan_foto(field='foto'):
     return None
 
 
+@app.context_processor
+def info_pengguna():
+    """Nama lengkap pengguna yang sedang login, dipakai di navbar (Pengguna: ...)."""
+    row = database.ambil_user_by_id(session['user_id']) if 'user_id' in session else None
+    return {'nama_login': row['nama'] if row else ''}
+
+
 def get_current_user():
     if 'user_id' not in session:
         return None
@@ -46,6 +53,9 @@ def login():
         if user_row:
             user_obj = buat_objek_user(user_row)
             if user_obj and user_obj.cek_password(password):
+                if user_obj.role != 'admin':
+                    flash('Login untuk siswa dan pengajar belum tersedia.', 'danger')
+                    return render_template('login.html')
                 session['user_id'] = user_obj.id
                 session['nama'] = user_obj.nama
                 session['role'] = user_obj.role
@@ -63,12 +73,10 @@ def dashboard():
     user = get_current_user()
     if not user:
         return redirect(url_for('login'))
-    
+
     if user.role == 'admin':
         return redirect(url_for('kelola_akun'))
-    
-    menu_list = user.tampilkan_menu()
-    return render_template('dashboard.html', user=user, menu_list=menu_list)
+    return redirect(url_for('login'))
 
 
 @app.route('/logout')
@@ -98,7 +106,8 @@ def kelola_akun():
 
         try:
             user.kelola_akun('tambah', nama=nama, username=username, password=password,
-                             role=role, whatsapp=whatsapp, foto=foto_filename, kelas_id=kelas_id)
+                             role=role, whatsapp=whatsapp, foto=foto_filename,
+                             kelas_id=kelas_id)
             flash('Akun berhasil dibuat!', 'success')
         except ValueError as e:
             flash(str(e), 'danger')

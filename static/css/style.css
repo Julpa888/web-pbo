@@ -8,7 +8,14 @@ a{color:inherit}
 .nav a{color:#000;text-decoration:none;padding:4px 14px;border-radius:12px}
 .nav a.active{background:#ffe58a;color:var(--navy)}
 .nav a.brand{padding:0;margin-right:6px}.brand img{height:38px;display:block}
-.who{margin-left:auto;color:var(--navy);font-weight:700}
+.who-wrap{margin-left:auto;position:relative;min-width:0;max-width:360px}
+.who{display:flex;align-items:center;gap:8px;max-width:100%;margin:0;padding:4px 0;border:0;background:none;font:inherit;color:var(--navy);font-weight:700;cursor:pointer}
+.who-nama{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.who-caret{flex:none;border:6px solid transparent;border-top-color:var(--navy);border-bottom:0}
+.who-menu{position:absolute;right:0;top:calc(100% + 12px);z-index:20;min-width:190px;background:var(--cream);border:2px dashed var(--navy);border-radius:14px;padding:8px;box-shadow:0 6px 16px #0004;font-size:17px}
+.who-role{padding:4px 12px 8px;color:#666;font-weight:500;border-bottom:1px solid #0002;margin-bottom:6px}
+.who-out{display:block;width:100%;text-align:left;padding:8px 12px;border:0;border-radius:10px;background:none;font:inherit;font-weight:600;color:var(--navy);cursor:pointer}
+.who-out:hover{background:#ffe58a}
 .flash{margin:16px 0 0;padding:10px 16px;border-radius:10px;font-weight:500;background:#fff;border-left:6px solid var(--navy)}
 .flash.danger{border-color:#c0392b;color:#8e2418}.flash.success{border-color:#2e8b57;color:#1f6b40}
 /* tabel */

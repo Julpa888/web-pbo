@@ -1,7 +1,5 @@
-"""
-models/presensi.py
-Penanggung jawab: ANGGOTA 4
-"""
+# pEMBAGIAN TUGAS DI models/presensi.py
+# Penanggung jawab: ANGGOTA 4
 
 class Presensi:
     def __init__(self, id, tanggal, siswa_id, kelas_id, status="Belum Hadir"):
@@ -20,7 +18,7 @@ class Presensi:
 
 
 class CatatanPengajar:
-    def __init__(self, id, siswa_id, pengajar_id, isi_catatan, tanggal):
+    def __init__(self, id, siswa_id, pengajar_id, isi_catatan, tanggal):                                                
         self.id = id
         self.siswa_id = siswa_id      
         self.pengajar_id = pengajar_id

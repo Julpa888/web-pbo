@@ -1,9 +1,7 @@
-"""
-models/akademik.py
-Kelas -> ANGGOTA 1
-Materi, Tugas, Pengumpulan, Komentar -> ANGGOTA 2 & 3
-Jadwal -> ANGGOTA 1
-"""
+# PEMBAGIAN TUGAS DI models/akademik.py
+# Kelas -> ANGGOTA 1
+# Materi, Tugas, Pengumpulan, Komentar -> ANGGOTA 2 & 3
+# Jadwal -> ANGGOTA 1
 
 from datetime import date, datetime
 import database
@@ -169,7 +167,7 @@ class Jadwal:
         if pengajar is None or pengajar["role"] != "pengajar":
             raise ValueError("Pengajar tidak valid.")
 
-        # bentrok dicek pada tanggal yang sama (jadwal lama tanpa tanggal: pada hari yang sama)
+        # bentrok dicek pada tanggal yang sama
         if tanggal:
             kandidat = database.ambil_jadwal_by_tanggal(tanggal)
         else:

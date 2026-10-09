@@ -17,7 +17,15 @@
     <a href="{{ url_for('kelola_akun') }}" class="{{ 'active' if ep == 'kelola_akun' }}">Kelola Akun</a>
     <a href="{{ url_for('kelola_kelas') }}" class="{{ 'active' if ep in ('kelola_kelas', 'detail_kelas') }}">Kelas</a>
     <a href="{{ url_for('kelola_jadwal') }}" class="{{ 'active' if ep == 'kelola_jadwal' }}">Jadwal</a>
-    <span class="who">Pengguna: {{ (session.get('role') or '')|capitalize }}</span>
+    <div class="who-wrap">
+      <button type="button" class="who" id="who-btn" title="{{ nama_login }}" aria-haspopup="true" aria-expanded="false">
+        <span class="who-nama">Pengguna: {{ nama_login }}</span><i class="who-caret"></i>
+      </button>
+      <div class="who-menu" id="who-menu" hidden>
+        <div class="who-role">{{ (session.get('role') or '')|capitalize }}</div>
+        <button type="button" class="who-out" data-logout>Keluar</button>
+      </div>
+    </div>
   </nav>
 
   {% with msgs = get_flashed_messages(with_categories=true) %}
@@ -47,7 +55,7 @@
 </div>
 
 {% block modals %}{% endblock %}
-<script>window.PATH = {up: "{{ url_for('static', filename='uploads/') }}", av: "{{ url_for('static', filename='images/default_avatar.png') }}"};</script>
+<script>window.PATH = {up: "{{ url_for('static', filename='uploads/') }}", av: "{{ url_for('static', filename='images/default_avatar.png') }}", out: "{{ url_for('logout') }}"};</script>
 <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 <script src="{{ url_for('static', filename='js/password_toggle.js') }}"></script>
 {% block scripts %}{% endblock %}

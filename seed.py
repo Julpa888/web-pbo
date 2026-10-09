@@ -18,7 +18,7 @@ def init_db():
     cursor.execute('''
         INSERT INTO users (nama, username, password, role, foto, no_whatsapp, biodata)
         VALUES (?, ?, ?, ?, ?, ?, ?)
-    ''', ('Siti Julpa Admin', 'admin', 'admin123', 'admin', 'default_avatar.png', None, None))
+    ''', ('Fluenglo Admin', 'admin', 'admin123', 'admin', 'default_avatar.png', None, None))
 
     conn.commit()
     conn.close()

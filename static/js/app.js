@@ -1,7 +1,7 @@
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const overlay=$('#overlay');
 function openModal(id){closeModals();overlay.hidden=false;document.getElementById(id).hidden=false}
-function closeModals(){overlay.hidden=true;$$('.modal').forEach(m=>m.hidden=true);$$('.select.open').forEach(s=>s.classList.remove('open'));$$('.fileop').forEach(f=>f.classList.remove('show'))}
+function closeModals(){const wm=$('#who-menu');if(wm)wm.hidden=true;overlay.hidden=true;$$('.modal').forEach(m=>m.hidden=true);$$('.select.open').forEach(s=>s.classList.remove('open'));$$('.fileop').forEach(f=>f.classList.remove('show'))}
 overlay.addEventListener('click',closeModals);
 document.addEventListener('keydown',e=>e.key==='Escape'&&closeModals());
 function confirmDel(text,url){$('#cf-text').textContent=text;$('#cf-yes').href=url;openModal('m-confirm')}
@@ -15,6 +15,11 @@ function showPj(p){
   openModal('m-pj')}
 document.addEventListener('click',e=>{
   const c=e.target.closest('[data-close]');if(c){closeModals();return}
+  /* menu pengguna (navbar): buka/tutup + keluar dengan konfirmasi */
+  const wm=$('#who-menu');
+  if(e.target.closest('#who-btn')){wm.hidden=!wm.hidden;$('#who-btn').setAttribute('aria-expanded',String(!wm.hidden));return}
+  if(e.target.closest('[data-logout]')){confirmDel('Yakin ingin keluar?',PATH.out);return}
+  if(wm&&!wm.hidden&&!e.target.closest('.who-wrap')){wm.hidden=true;$('#who-btn').setAttribute('aria-expanded','false')}
   const pj=e.target.closest('[data-pj]');if(pj){showPj(JSON.parse(pj.dataset.pj));return}
   const o=e.target.closest('[data-open]');if(o){e.stopPropagation();openModal(o.dataset.open)}
   const d=e.target.closest('[data-confirm]');if(d){e.stopPropagation();confirmDel(d.dataset.confirm,d.dataset.url)}
@@ -40,9 +45,9 @@ $$('.select').forEach(s=>{
   s.reset=()=>{sel=[];multi?draw():s.setValue('','')};
 });
 /* pilih peran -> tampilkan field pengajar */
-  $$('[data-role-toggle]').forEach(h=>h.addEventListener('change',()=>{
-    $$('.pengajar-only',h.closest('form')).forEach(x=>x.hidden=h.value!=='pengajar');
-    $$('.siswa-only',h.closest('form')).forEach(x=>x.hidden=h.value!=='siswa')}));
+$$('[data-role-toggle]').forEach(h=>h.addEventListener('change',()=>{
+  $$('.pengajar-only',h.closest('form')).forEach(x=>x.hidden=h.value!=='pengajar');
+  $$('.siswa-only',h.closest('form')).forEach(x=>x.hidden=h.value!=='siswa')}));
 /* upload foto */
 $$('.photo').forEach(p=>{
   const inp=$('input[type=file]',p),show=$('.fname',p),op=$('.fileop',p);

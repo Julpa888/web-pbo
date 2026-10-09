@@ -1,7 +1,5 @@
-"""
-models/user.py
-Penanggung jawab utama: JULPA (Backend Auth) untuk class User & Admin.
-"""
+# PEMBAGIAN TUGAS DI models/user.py
+# Penanggung jawab utama: JULPA (Backend Auth) untuk class User & Admin.
 
 from abc import ABC, abstractmethod
 import re
@@ -9,27 +7,22 @@ import database
 
 
 class User(ABC):
-    """Class dasar (abstract) untuk semua jenis akun di sistem."""
-
     def __init__(self, id, nama, username, password, role):
         self.id = id
         self.nama = nama
         self.username = username
         self.__password = password 
-        self.role = role  # Atribut role ditambahkan di sini
+        self.role = role
 
     def cek_password(self, password):
-        """Satu-satunya cara mengecek password dari luar class."""
         return self.__password == password
 
     @staticmethod
     def validasi_username(username):
-        """Username minimal 5 karakter."""
         return len(username or "") >= 5
 
     @staticmethod
     def validasi_password(password):
-        """Password minimal 8 karakter, wajib kombinasi huruf dan angka."""
         pwd = password or ""
         if len(pwd) < 8:
             return False
@@ -39,7 +32,6 @@ class User(ABC):
 
     @abstractmethod
     def tampilkan_menu(self):
-        """Wajib di-override di tiap class turunan (POLYMORPHISM)."""
         pass
 
 
