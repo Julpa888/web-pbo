@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS users (
     foto TEXT DEFAULT 'default_avatar.png',
     no_whatsapp TEXT,
     biodata TEXT,
+    alamat TEXT,
+    nik TEXT,
+    email TEXT,
     FOREIGN KEY(kelas_id) REFERENCES kelas(id)
 );
 

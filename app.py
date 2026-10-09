@@ -11,7 +11,7 @@ app.secret_key = 'fluenglo_secret_key_pbo'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-database.migrasi()  # pastikan kolom baru (guru ke-2, tanggal & materi jadwal) ada di fluenglo.db
+database.migrasi()  # pastikan kolom baru (guru ke-2, jadwal, alamat/nik/email) ada di fluenglo.db
 
 BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
          'Agustus', 'September', 'Oktober', 'November', 'Desember']
@@ -28,18 +28,22 @@ def simpan_foto(field='foto'):
     return None
 
 
-@app.context_processor
-def info_pengguna():
-    """Nama lengkap pengguna yang sedang login, dipakai di navbar (Pengguna: ...)."""
-    row = database.ambil_user_by_id(session['user_id']) if 'user_id' in session else None
-    return {'nama_login': row['nama'] if row else ''}
-
-
 def get_current_user():
     if 'user_id' not in session:
         return None
     row = database.ambil_user_by_id(session['user_id'])
     return buat_objek_user(row) if row else None
+
+
+@app.context_processor
+def info_pengguna():
+    """Nama pengguna + daftar menu navbar, dipakai di semua template."""
+    user = get_current_user()
+    return {
+        'nama_login': user.nama if user else '',
+        # POLYMORPHISM: cukup panggil tampilkan_menu(), ga perlu cek role satu-satu
+        'menu_user': user.tampilkan_menu() if user else [],
+    }
 
 
 @app.route('/', methods=['GET', 'POST'])
@@ -53,9 +57,6 @@ def login():
         if user_row:
             user_obj = buat_objek_user(user_row)
             if user_obj and user_obj.cek_password(password):
-                if user_obj.role != 'admin':
-                    flash('Login untuk siswa dan pengajar belum tersedia.', 'danger')
-                    return render_template('login.html')
                 session['user_id'] = user_obj.id
                 session['nama'] = user_obj.nama
                 session['role'] = user_obj.role
@@ -76,13 +77,90 @@ def dashboard():
 
     if user.role == 'admin':
         return redirect(url_for('kelola_akun'))
-    return redirect(url_for('login'))
+    return redirect(url_for('profil'))
 
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+
+# --- ROUTE PROFIL (SISWA & PENGAJAR) ---
+@app.route('/profil')
+def profil():
+    user = get_current_user()
+    if not user or user.role == 'admin':
+        return redirect(url_for('login'))
+
+    # POLYMORPHISM: lihat_profil() dipanggil sama, hasilnya beda tiap role
+    data = user.lihat_profil()
+    if user.role == 'pengajar':
+        return render_template('profil_pengajar.html', data=data, lengkap=True, bisa_ubah=True)
+    return render_template('profil_siswa.html', data=data, lengkap=True, bisa_ubah=True)
+
+
+@app.route('/profil/password', methods=['POST'])
+def ganti_password():
+    user = get_current_user()
+    if not user or user.role == 'admin':
+        return redirect(url_for('login'))
+
+    password_lama = request.form.get('password_lama', '')
+    password_baru = request.form.get('password_baru', '')
+    konfirmasi = request.form.get('konfirmasi_password', '')
+
+    try:
+        if password_baru != konfirmasi:
+            raise ValueError('Konfirmasi password tidak cocok.')
+        user.ganti_password(password_lama, password_baru)
+        flash('Password berhasil diganti!', 'success')
+    except ValueError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('profil'))
+
+
+@app.route('/profil/ubah', methods=['POST'])
+def ubah_profil():
+    user = get_current_user()
+    if not user or user.role != 'pengajar':
+        return redirect(url_for('login'))
+
+    try:
+        user.edit_profil(whatsapp=request.form.get('whatsapp', ''),
+                         email=request.form.get('email', ''),
+                         foto=simpan_foto())
+        flash('Profil berhasil diperbarui!', 'success')
+    except ValueError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('profil'))
+
+
+@app.route('/pengajar/<int:pengajar_id>')
+def profil_pengajar(pengajar_id):
+    """Profil pengajar. Admin & pengajar ybs lihat lengkap, siswa cuma versi publik."""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+
+    row = database.ambil_user_by_id(pengajar_id)
+    if not row or row['role'] != 'pengajar':
+        flash('Pengajar tidak ditemukan.', 'danger')
+        return redirect(url_for('dashboard'))
+
+    # siswa cuma boleh lihat pengajar kelasnya sendiri
+    if user.role == 'siswa':
+        kelas = database.ambil_kelas_siswa(user.id)
+        ids = [p['id'] for p in database.ambil_pengajar_kelas(kelas)] if kelas else []
+        if pengajar_id not in ids:
+            flash('Kamu hanya bisa melihat profil pengajar kelasmu.', 'danger')
+            return redirect(url_for('profil'))
+
+    target = buat_objek_user(row)
+    lengkap = user.role == 'admin' or user.id == target.id
+    data = target.lihat_profil() if lengkap else target.profil_publik()
+    return render_template('profil_pengajar.html', data=data, lengkap=lengkap,
+                           bisa_ubah=(user.id == target.id))
 
 
 # --- ROUTE KELOLA AKUN ---
@@ -98,6 +176,8 @@ def kelola_akun():
         password = request.form['password']
         role = request.form['role']
         whatsapp = request.form.get('whatsapp', '')
+        alamat = request.form.get('alamat', '')
+        nik = request.form.get('nik', '')
         kelas_id = request.form.get('kelas_id', '')
 
         foto_filename = 'default_avatar.png'
@@ -106,8 +186,8 @@ def kelola_akun():
 
         try:
             user.kelola_akun('tambah', nama=nama, username=username, password=password,
-                             role=role, whatsapp=whatsapp, foto=foto_filename,
-                             kelas_id=kelas_id)
+                             role=role, whatsapp=whatsapp, alamat=alamat, nik=nik,
+                             foto=foto_filename, kelas_id=kelas_id)
             flash('Akun berhasil dibuat!', 'success')
         except ValueError as e:
             flash(str(e), 'danger')
@@ -136,6 +216,8 @@ def edit_akun(user_id):
                          username=request.form.get('username', ''),
                          password=request.form.get('password', ''),
                          whatsapp=request.form.get('whatsapp', ''),
+                         alamat=request.form.get('alamat', ''),
+                         nik=request.form.get('nik', ''),
                          foto=foto)
         flash('Akun berhasil diperbarui!', 'success')
     except ValueError as e:
@@ -154,6 +236,25 @@ def hapus_akun(user_id):
     except ValueError as e:
         flash(str(e), 'danger')
     return redirect(url_for('kelola_akun'))
+
+
+@app.route('/admin/users/<int:user_id>/biodata')
+def biodata_akun(user_id):
+    """Tombol 'Biodata Lengkap' di tabel Kelola Akun (pengajar maupun siswa)."""
+    user = get_current_user()
+    if not user or user.role != 'admin':
+        return redirect(url_for('login'))
+
+    row = database.ambil_user_by_id(user_id)
+    if not row or row['role'] == 'admin':
+        flash('Akun tidak ditemukan.', 'danger')
+        return redirect(url_for('kelola_akun'))
+
+    target = buat_objek_user(row)
+    data = target.lihat_profil()  # POLYMORPHISM: Siswa & Pengajar punya lihat_profil() sendiri-sendiri
+    if target.role == 'pengajar':
+        return render_template('profil_pengajar.html', data=data, lengkap=True, bisa_ubah=False)
+    return render_template('profil_siswa.html', data=data, lengkap=True, bisa_ubah=False)
 
 
 # --- ROUTE KELOLA KELAS ---
@@ -288,6 +389,12 @@ def kelola_jadwal():
     pengajar_list = database.ambil_semua_pengajar()
 
     return render_template('kelola_jadwal.html', jadwal_list=jadwal_list, kelas_list=kelas_list, pengajar_list=pengajar_list)
+
+
+# --- ROUTE MATERI, TUGAS, PENILAIAN, MONITORING, PRESENSI ---
+# TODO (Anggota 2): route Materi (upload/download/hapus) dan Tugas (buat, kumpul, komentar)
+# TODO (Anggota 3): route penilaian tugas, Monitoring (rekap nilai, rekap presensi, catatan akhir)
+# TODO (Anggota 4): route Presensi (hadir, sakit, izin, alfa)
 
 
 if __name__ == '__main__':

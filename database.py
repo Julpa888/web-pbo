@@ -11,6 +11,7 @@ def migrasi():
     """Tambah kolom baru ke fluenglo.db lama (aman dijalankan berulang kali).
     - kelas.pengajar_id2 : guru kedua (opsional) tiap kelas
     - jadwal.tanggal / jadwal.materi : dipakai form Buat Jadwal & tabel jadwal
+    - users.alamat / users.nik / users.email : data pengajar (revisi dosen)
     """
     conn = get_connection()
     def kolom(tabel):
@@ -19,6 +20,9 @@ def migrasi():
         ('kelas', 'pengajar_id2', 'INTEGER'),
         ('jadwal', 'tanggal', 'TEXT'),
         ('jadwal', 'materi', 'TEXT'),
+        ('users', 'alamat', 'TEXT'),
+        ('users', 'nik', 'TEXT'),
+        ('users', 'email', 'TEXT'),
     ]
     for tabel, nama, tipe in tambahan:
         ada = kolom(tabel)
@@ -56,21 +60,23 @@ def ambil_semua_pengajar():
     conn.close()
     return rows
 
-def tambah_user(nama, username, password, role, foto=None, no_whatsapp=None, biodata=None, kelas_id=None):
+def tambah_user(nama, username, password, role, foto=None, no_whatsapp=None, biodata=None,
+                kelas_id=None, alamat=None, nik=None, email=None):
     conn = get_connection()
     try:
         cursor = conn.cursor()
         cursor.execute('''
-            INSERT INTO users (nama, username, password, role, foto, no_whatsapp, biodata, kelas_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (nama, username, password, role, foto or 'default_avatar.png', no_whatsapp, biodata, kelas_id))
+            INSERT INTO users (nama, username, password, role, foto, no_whatsapp, biodata,
+                               kelas_id, alamat, nik, email)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (nama, username, password, role, foto or 'default_avatar.png', no_whatsapp,
+              biodata, kelas_id, alamat, nik, email))
         conn.commit()
-        last_id = cursor.lastrowid
-        conn.close()
-        return last_id
+        return cursor.lastrowid
     except sqlite3.IntegrityError:
-        conn.close()
         raise ValueError("Username sudah digunakan.")
+    finally:
+        conn.close()
 
 def edit_user(user_id, **kwargs):
     conn = get_connection()
@@ -277,3 +283,13 @@ def hapus_jadwal(jadwal_id):
     conn.execute('DELETE FROM jadwal WHERE id = ?', (jadwal_id,))
     conn.commit()
     conn.close()
+
+
+# --- MATERI & TUGAS FUNCTIONS ---
+# TODO (Anggota 2): query materi (upload, ambil, hapus) dan tugas (buat, ambil, kumpul, komentar)
+
+# --- PENILAIAN & CATATAN AKHIR FUNCTIONS ---
+# TODO (Anggota 3): query penilaian tugas, rekap nilai, dan catatan akhir pengajar
+
+# --- PRESENSI FUNCTIONS ---
+# TODO (Anggota 4): query presensi (catat, update status, rekap per siswa/kelas)
