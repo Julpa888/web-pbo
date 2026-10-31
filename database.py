@@ -549,7 +549,7 @@ def hapus_kelas(kelas_id):
 def ambil_siswa_by_kelas(kelas_id):
     conn = get_connection()
     rows = conn.execute('SELECT * FROM users WHERE role = "siswa" AND kelas_id = ? ORDER BY nama',
-                        (kelas_id,)).fetchall()  # urut nama biar presensi stabil urutannya
+                        (kelas_id,)).fetchall()  # urut nama biar presensi stabil urutannyaa
     conn.close()
     return rows
 

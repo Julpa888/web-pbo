@@ -283,7 +283,7 @@
       return;
     }
 
-    // ganti pilihan jurusan -> kolom "Jurusan Lainnya" dibuka/ditutup
+    // ganti pilihan jurusan -> kolom "Jurusan Lainnya" dibuka/ditutupp
     if (t.matches('[data-jurusan-pick]')) {
       const form = t.closest('form');
       if (form) saringJurusan(form);

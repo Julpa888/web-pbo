@@ -202,7 +202,7 @@ def info_pengguna():
         'nama_login': user.nama if user else '',
         'foto_login': database.ambil_user_by_id(user.id)['foto'] if user else None,
         'id_login': user.id if user else None,
-        # POLYMORPHISM: cukup panggil tampilkan_menu(), ga perlu cek role satu-satu
+        # POLYMORPHISM: cukup panggil tampilkan_menu(), ga perlu cek role satu-satuu
         'menu_user': user.tampilkan_menu() if user else [],
         'back_url': tujuan_back(user) if user and request.endpoint not in ('dashboard', 'login') else None,
     }
