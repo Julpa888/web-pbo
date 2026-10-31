@@ -1439,6 +1439,42 @@ def simpan_presensi(kelas_id):
                             jadwal=request.form.get('jadwal_id', '') or None))
 
 
+@app.route('/kelas/<int:kelas_id>/presensi/batal/<int:jadwal_id>', methods=['GET', 'POST'])
+def batalkan_presensi(kelas_id, jadwal_id):
+    user = get_current_user()
+    if not user or user.role != 'pengajar':
+        return redirect(url_for('login'))
+
+    jadwal = database.ambil_jadwal_by_id(jadwal_id)
+    try:
+        if not jadwal or jadwal['kelas_id'] != kelas_id:
+            raise ValueError('Pertemuan tidak ditemukan.')
+        user.batalkan_presensi_kelas(kelas_id, jadwal['tanggal'], jadwal_id=jadwal_id)
+        flash('Presensi pertemuan berhasil dibatalkan!', 'success')
+    except ValueError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('detail_kelas', kelas_id=kelas_id, jadwal=jadwal_id))
+
+
+@app.route('/jadwal/<int:jadwal_id>/presensi/batal', methods=['GET', 'POST'])
+def batalkan_presensi_jadwal(jadwal_id):
+    user = get_current_user()
+    if not user or user.role != 'pengajar':
+        return redirect(url_for('login'))
+
+    jadwal = database.ambil_jadwal_by_id(jadwal_id)
+    if not jadwal or not jadwal['tanggal'] or not user.boleh_presensi_jadwal(jadwal):
+        flash('Kamu tidak memiliki akses presensi untuk jadwal ini.', 'danger')
+        return redirect(url_for('lihat_jadwal'))
+
+    try:
+        user.batalkan_presensi_kelas(jadwal['kelas_id'], jadwal['tanggal'], jadwal_id=jadwal_id)
+        flash('Presensi pertemuan berhasil dibatalkan!', 'success')
+    except ValueError as e:
+        flash(str(e), 'danger')
+    return redirect(url_for('presensi_jadwal', jadwal_id=jadwal_id))
+
+
 @app.route('/jadwal/<int:jadwal_id>/presensi', methods=['GET', 'POST'])
 def presensi_jadwal(jadwal_id):
     """Halaman presensi terbatas untuk satu jadwal, terutama bagi pengajar pengganti."""

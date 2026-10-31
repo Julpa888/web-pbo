@@ -3,7 +3,7 @@
 {% block title %}Presensi Jadwal · Fluenglo{% endblock %}
 {% block content %}
 <div class="page-head">
-  <a class="back-button" href="{{ back_url }}">{{ ic('arrow-left', 18) }} Back</a>
+  <a class="back-button" href="{{ back_url }}">{{ ic('arrow-left', 18) }} Kembali</a>
   <div>
     <h1>Isi Presensi</h1>
     <p class="sub">{{ kelas.nama_kelas }} · {{ label_tanggal }} · {{ jadwal.jam }} · Ruangan {{ jadwal.ruangan or '—' }}</p>
@@ -26,6 +26,15 @@
       </tbody>
     </table>
   </div></div>
-  {% if siswa_list %}<div class="presensi-foot"><button class="btn btn-yellow">Simpan Presensi</button></div>{% endif %}
+  {% if siswa_list %}
+  <div class="presensi-foot">
+    <button type="button" class="btn btn-red"
+      data-confirm="{{ url_for('batalkan_presensi_jadwal', jadwal_id=jadwal.id) }}"
+      data-judul="Batalkan Presensi"
+      data-ok="Ya, Batalkan"
+      data-text="Yakin ingin membatalkan seluruh presensi siswa pada pertemuan {{ label_tanggal }} ({{ jadwal.jam }})?">Batalkan Presensi</button>
+    <button class="btn btn-yellow">Simpan Presensi</button>
+  </div>
+  {% endif %}
 </form>
 {% endblock %}

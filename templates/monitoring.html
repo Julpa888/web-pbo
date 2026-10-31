@@ -15,7 +15,7 @@
     <h1>Monitoring</h1>
     <p class="sub">{{ 'Rekap nilai, presensi, dan catatan akhir seluruh siswa.' if user.role == 'admin' else 'Rekap siswa di kelas yang kamu ajar.' }}</p>
   </div>
-  <a class="back-button" href="{{ back_url }}">{{ ic('arrow-left', 18) }} Back</a>
+  <a class="back-button" href="{{ back_url }}">{{ ic('arrow-left', 18) }} Kembali</a>
 </div>
 
 <div class="table-tools table-tools--with-filter" data-search-panel="monitoring-siswa">
@@ -71,7 +71,7 @@
 {% set rata = data.nilai.rata_rata %}
 
 <div class="page-head">
-  <a class="back-button" href="{{ back_url }}">{{ ic('arrow-left', 18) }} Back</a>
+  <a class="back-button" href="{{ back_url }}">{{ ic('arrow-left', 18) }} Kembali</a>
   <div>
     <h1>Monitoring Anak</h1>
     <p class="sub">Rekap presensi, perkembangan nilai, dan catatan akhir dari pengajar.</p>

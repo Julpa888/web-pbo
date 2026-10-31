@@ -754,6 +754,37 @@ class Pengajar(User):
             Presensi.hapus_banyak(kelas_id, tanggal, kosongkan, jadwal_id=jadwal_id)
         return jumlah
 
+    def batalkan_presensi_kelas(self, kelas, tanggal, jadwal_id=None):
+        """Membatalkan seluruh presensi siswa pada satu pertemuan yang dipilih."""
+        from models.presensi import Presensi
+        kelas_id = getattr(kelas, "id", kelas)
+        try:
+            kelas_id = int(kelas_id)
+        except (TypeError, ValueError):
+            raise ValueError("Kelas tidak valid.")
+        tanggal = Presensi.cek_tanggal(tanggal)
+        if jadwal_id is None:
+            kandidat = [j for j in database.ambil_jadwal_by_kelas(kelas_id) if j['tanggal'] == tanggal]
+            if len(kandidat) == 1:
+                jadwal_terpilih = kandidat[0]
+                jadwal_id = jadwal_terpilih['id']
+            else:
+                jadwal_terpilih = None
+        else:
+            try:
+                jadwal_id = int(jadwal_id)
+            except (TypeError, ValueError):
+                raise ValueError('Pilih pertemuan yang valid untuk membatalkan presensi.')
+            jadwal_terpilih = database.ambil_jadwal_by_id(jadwal_id)
+        if not jadwal_terpilih or jadwal_terpilih['kelas_id'] != kelas_id or jadwal_terpilih['tanggal'] != tanggal:
+            raise ValueError('Pilih pertemuan yang valid untuk membatalkan presensi.')
+        if jadwal_terpilih['pengganti_id']:
+            if jadwal_terpilih['pengganti_id'] != self.id:
+                raise ValueError('Presensi pertemuan ini ditugaskan kepada pengajar pengganti.')
+        elif not self.mengajar_kelas(kelas_id):
+            raise ValueError("Kamu bukan pengajar di kelas ini.")
+        return Presensi.batalkan_pertemuan(kelas_id, tanggal, jadwal_id=jadwal_id)
+
     def beri_catatan_akhir(self, kelas, siswa, isi, lulus=False):
         kelas_id = getattr(kelas, "id", kelas)
         siswa_id = getattr(siswa, "id", siswa)

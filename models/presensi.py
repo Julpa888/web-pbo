@@ -129,6 +129,12 @@ class Presensi:
             jumlah += database.hapus_presensi(kelas_id, tanggal, sid, jadwal_id)
         return jumlah
 
+    @staticmethod
+    def batalkan_pertemuan(kelas_id, tanggal, jadwal_id=None):
+        """Membatalkan (mengosongkan) seluruh kehadiran siswa pada satu pertemuan yang dipilih."""
+        kelas_id, tanggal = Presensi.cek_input(kelas_id, tanggal, [])
+        return database.hapus_presensi_pertemuan(kelas_id, tanggal, jadwal_id=jadwal_id)
+
     def simpan(self, pengajar_id=None, jadwal_id=None):
         """Simpan objek ini (insert, atau update kalau siswa+kelas+tanggal sudah ada)."""
         self.status = Presensi.normalisasi_status(self.status)

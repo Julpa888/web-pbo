@@ -102,7 +102,14 @@
     </tbody>
   </table></div></div>
   {% if bisa_isi and siswa_list %}
-  <div class="presensi-foot"><button class="btn btn-navy">Simpan Presensi</button></div>
+  <div class="presensi-foot">
+    <button type="button" class="btn btn-red"
+      data-confirm="{{ url_for('batalkan_presensi', kelas_id=kelas.id, jadwal_id=p.jadwal_id) }}"
+      data-judul="Batalkan Presensi"
+      data-ok="Ya, Batalkan"
+      data-text="Yakin ingin membatalkan seluruh presensi siswa pada pertemuan {{ p.label }} ({{ p.jam }})?">Batalkan Presensi</button>
+    <button class="btn btn-navy">Simpan Presensi</button>
+  </div>
   {% elif user.role == 'pengajar' and p.pengganti_id and p.pengganti_id != user.id %}
   <p class="form-note note-telat">{{ ic('lock', 14) }} Pertemuan ini ditugaskan kepada pengajar pengganti ({{ p.nama_pengajar }}). Presensi pertemuan ini hanya bisa dilihat.</p>
   {% elif user.role == 'pengajar' and tanggal_boleh is not none %}

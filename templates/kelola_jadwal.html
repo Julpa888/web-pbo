@@ -42,7 +42,7 @@
   <div><h1>Jadwal</h1><p class="sub">{{ 'Jadwal mengajar per minggu.' if bisa_kelola else 'Jadwal kelas per minggu.' }}</p></div>
   <div class="toolbar-actions">
     {% if bisa_kelola %}<button type="button" class="btn btn-yellow" data-open="modal-tambah-jadwal">+ Buat Jadwal</button>{% endif %}
-    <a class="back-button" href="{{ url_for('dashboard') }}">{{ ic('arrow-left', 18) }} <span>Back</span></a>
+    <a class="back-button" href="{{ url_for('dashboard') }}">{{ ic('arrow-left', 18) }} <span>Kembali</span></a>
   </div>
 </div>
 

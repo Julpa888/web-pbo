@@ -1237,6 +1237,18 @@ def hapus_presensi(kelas_id, tanggal, siswa_id, jadwal_id=None):
         return cursor.rowcount
     finally: conn.close()
 
+def hapus_presensi_pertemuan(kelas_id, tanggal, jadwal_id=None):
+    """Menghapus (membatalkan) seluruh data presensi siswa pada satu jadwal pertemuan."""
+    conn = get_connection()
+    try:
+        jadwal_id = _tentukan_jadwal_presensi(conn, kelas_id, tanggal, jadwal_id)
+        cursor = conn.execute('DELETE FROM presensi WHERE jadwal_id=? AND kelas_id=? AND tanggal=?',
+                              (jadwal_id, kelas_id, tanggal))
+        conn.commit()
+        return cursor.rowcount
+    finally:
+        conn.close()
+
 def update_status_presensi(presensi_id, status):
     conn = get_connection()
     conn.execute('UPDATE presensi SET status = ? WHERE id = ?', (status, presensi_id))
