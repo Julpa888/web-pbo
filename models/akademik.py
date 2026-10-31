@@ -5,7 +5,7 @@ import database
 
 HARI_VALID = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"]
 
-# 3 gambar latar kartu kelas yang boleh dipilih admin.
+# 3 gambar latar kartu kelas yang boleh dipilih admin
 HEADER_KELAS = {
     "header_winter.png": "Winter",
     "header_autum.png": "Autumn",
